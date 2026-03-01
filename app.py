@@ -7,8 +7,8 @@ import io
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(__file__))
-from api.generate_pdf import generate_visa_pdf_bytes
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from generate_pdf import generate_visa_pdf_bytes
 
 app = Flask(__name__)
 
