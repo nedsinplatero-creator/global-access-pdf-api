@@ -1,11 +1,8 @@
 """
 Global Access — Portugal Visa PDF API
-Deploy to Railway.app or Render.com in 2 minutes.
-POST /generate-pdf with JSON body of applicant data → returns PDF binary
 """
 
 from flask import Flask, request, jsonify, send_file
-from flask_cors import CORS
 import io
 import sys
 import os
@@ -14,8 +11,13 @@ sys.path.insert(0, os.path.dirname(__file__))
 from api.generate_pdf import generate_visa_pdf_bytes
 
 app = Flask(__name__)
-CORS(app, origins=["*"])  # Restrict to your domain in production
 
+@app.after_request
+def add_cors(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return response
 
 @app.route("/", methods=["GET"])
 def health():
@@ -25,38 +27,21 @@ def health():
         "version": "1.0.0"
     })
 
-
-@app.route("/generate-pdf", methods=["POST"])
+@app.route("/generate-pdf", methods=["POST", "OPTIONS"])
 def generate_pdf():
-    """
-    Accepts applicant JSON data, returns a filled Portugal visa PDF.
-    
-    Expected JSON fields (all optional except first_name, surname, email):
-    - first_name, surname, surname_at_birth
-    - date_of_birth, place_of_birth, country_of_birth
-    - nationality, nationality_at_birth, other_nationalities
-    - sex, civil_status, national_id_number
-    - passport_type, passport_number, passport_issue_date, passport_expiry, passport_issued_by
-    - home_address, email, phone
-    - current_occupation, employer_name, employer_address
-    - purpose_of_journey, arrival_date, departure_date
-    - costs_covered_by, inviting_person, inviting_address
-    - health_insurance
-    """
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
     try:
         data = request.get_json()
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
 
-        # Generate the PDF
         pdf_bytes = generate_visa_pdf_bytes(data)
 
         if not pdf_bytes or len(pdf_bytes) < 100:
-            return jsonify({"error": "PDF generation failed — empty output"}), 500
+            return jsonify({"error": "PDF generation failed"}), 500
 
-        # Return as downloadable PDF
-        filename = f"portugal_visa_{data.get('surname','application')}_{data.get('first_name','')}.pdf"
-        filename = filename.replace(" ", "_").lower()
+        filename = f"portugal_visa_{data.get('surname','application')}.pdf".replace(" ", "_").lower()
 
         return send_file(
             io.BytesIO(pdf_bytes),
