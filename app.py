@@ -2,7 +2,6 @@
 Global Access — Portugal Visa PDF API
 """
 from flask import Flask, request, jsonify, send_file
-from flask_cors import CORS
 import io
 import sys
 import os
@@ -10,14 +9,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from generate_pdf import generate_visa_pdf_bytes
 
 app = Flask(__name__)
-
-# CORS — allow all origins (handles Railway network-level preflight)
-CORS(app, 
-     resources={r"/*": {"origins": "*"}},
-     allow_headers=["Content-Type", "Accept"],
-     methods=["GET", "POST", "OPTIONS"],
-     supports_credentials=False
-)
 
 @app.after_request
 def add_cors_headers(response):
@@ -35,12 +26,10 @@ def health():
         "version": "1.0.0"
     })
 
-@app.route("/generate-pdf", methods=["GET", "POST", "OPTIONS"])
+@app.route("/generate-pdf", methods=["POST", "OPTIONS"])
 def generate_pdf():
-    # Handle CORS preflight explicitly
     if request.method == "OPTIONS":
-        response = jsonify({})
-        response.status_code = 200
+        response = app.make_default_options_response()
         response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Accept"
         response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
